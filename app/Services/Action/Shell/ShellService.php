@@ -8,6 +8,7 @@ use App\Models\Server;
 use App\Models\Task;
 use App\Models\SSHKey;
 use App\Models\ServerSshKey;
+use Illuminate\Support\Facades\Log;
 
 
 class ShellService
@@ -33,11 +34,13 @@ class ShellService
         //the keys are SSHKey model not server
         $privateKey = $sshkey->private_key;
         $publicKey = $sshkey->public_key;
+
         $key = PublicKeyLoader::load($privateKey);
 
         if (! $this->ssh->login($server->username, $key)) {
             throw new \RuntimeException('SSH authentication failed.');
         }
+        // $this->ssh->enablePTY();
 
         $this->task->log('SSH connection established.');
     }

@@ -32,10 +32,6 @@ class ServerConnectionJob implements ShouldQueue
      */
     public function handle(): void
     {
-        Log::info('Server', [
-            'server' => $this->server,
-        ]);
-
 
         $task = Task::create([
             'server_id' => $this->server->id,
@@ -47,7 +43,13 @@ class ServerConnectionJob implements ShouldQueue
         try {
             $shell = new ShellService($this->server, $task);
 
-            $shell->exec('echo "connected"');
+            $output = trim($shell->exec('whoami'));
+            Log::info('SSH whoami output', [$output]);
+            if ($output !== $this->server->username) {
+                throw new \RuntimeException(
+                    "SSH connected, but user mismatch: {$output}"
+                );
+            }
 
             $task->update([
                 'status' => 'success',
@@ -55,7 +57,7 @@ class ServerConnectionJob implements ShouldQueue
             ]);
 
             $this->server->update([
-                'connection_status' => 'connected',
+                'connection_status' => 'Connected',
                 'last_connection_checked_at' => now(),
             ]);
         } catch (\Throwable $e) {
@@ -67,7 +69,7 @@ class ServerConnectionJob implements ShouldQueue
             ]);
 
             $this->server->update([
-                'connection_status' => 'failed',
+                'connection_status' => 'Failed',
                 'last_connection_checked_at' => now(),
             ]);
         }
