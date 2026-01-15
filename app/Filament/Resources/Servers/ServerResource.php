@@ -44,6 +44,7 @@ class ServerResource extends Resource
             'index' => ListServers::route('/'),
             'create' => CreateServer::route('/create'),
             'edit' => EditServer::route('/{record}/edit'),
+            'view'   => Pages\ViewServer::route('/{record}'),
         ];
     }
 }

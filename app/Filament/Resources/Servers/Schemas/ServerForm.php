@@ -15,7 +15,7 @@ class ServerForm
         return $schema
             ->schema([
                 Section::make('Server Information')
-                    ->description('Basic connection details for your server')
+                    ->description('Basic connection details for your [Existing] server')
                     ->icon('heroicon-o-server-stack')
                     ->columnSpan('full')
                     ->schema([
