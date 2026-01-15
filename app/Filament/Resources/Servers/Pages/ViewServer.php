@@ -10,6 +10,7 @@ use Filament\Schemas\Components\Text;
 use Filament\Actions\Action;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Support\Icons\Heroicon;
+
 class ViewServer extends ViewRecord
 {
     protected static string $resource = ServerResource::class;
@@ -17,89 +18,102 @@ class ViewServer extends ViewRecord
     public function infolist(Schema $schema): Schema
     {
         return $schema->schema([
-           Section::make('Server Overview')
-    ->columns(3)
-    ->schema([
-        TextEntry::make('name')
-            ->label('Server Name')
-            ->columnSpanFull()
-           // ->size(TextEntry\TextEntrySize::Large)
-            ->weight('bold'),
+            Section::make('Server Overview')
+                ->columns(3)
+                ->schema([
+                    TextEntry::make('name')
+                        ->label('Server Name')
+                        ->columnSpanFull()
+                        // ->size(TextEntry\TextEntrySize::Large)
+                        ->weight('bold'),
 
-        TextEntry::make('host')
-            ->label('Host / Address')
-            ->columnSpanFull()
-            ->fontFamily('mono'),
+                    TextEntry::make('host')
+                        ->label('Host / Address')
+                        ->columnSpanFull()
+                        ->fontFamily('mono'),
 
-        TextEntry::make('public_ip')
-            ->label('Public IP')
-            ->copyable()
-            ->fontFamily('mono'),
+                    TextEntry::make('public_ip')
+                        ->label('Public IP')
+                        ->copyable()
+                        ->fontFamily('mono'),
 
-        TextEntry::make('private_ip')
-            ->label('Private IP')
-            ->fontFamily('mono'),
+                    TextEntry::make('private_ip')
+                        ->label('Private IP')
+                        ->fontFamily('mono'),
 
-        TextEntry::make('port')
-            ->label('SSH Port')
-            ->badge(),
+                    TextEntry::make('port')
+                        ->label('SSH Port')
+                        ->badge(),
 
-        TextEntry::make('username')
-            ->label('SSH User')
-            ->badge()
-            ->color('gray'),
+                    TextEntry::make('username')
+                        ->label('SSH User')
+                        ->badge()
+                        ->color('gray'),
 
-        TextEntry::make('os')
-            ->label('Operating System')
-            ->color('gray'),
-    ])
-    ->collapsed(false),
+                    TextEntry::make('os')
+                        ->label('Operating System')
+                        ->color('gray'),
+                ])
+                ->collapsed(false),
 
             /* ─────────────────────────────
              | SSH Access (Existing Server)
              |──────────────────────────── */
-          Section::make('SSH Access')
-    ->description('Grant NanoDeploy SSH access to this server.')
-    ->schema([
+            Section::make('SSH Access')
+                ->description('Grant NanoDeploy SSH access to this server.')
+                ->schema([
 
-        // Instructions (always visible)
-        TextEntry::make('ssh_help')
-            ->state(fn () =>
-                'Add the NanoDeploy public key to ~/.ssh/authorized_keys on this server. ' .
-                'This key is safe to share. Never expose the private key.'
-            )
-            ->columnSpanFull(),
+                    // Instructions (always visible)
+                    TextEntry::make('ssh_help')
+                        ->state(
+                            fn() =>
+                            'Add the NanoDeploy public key to ~/.ssh/authorized_keys on this server. ' .
+                                'This key is safe to share. Never expose the private key.'
+                        )
+                        ->columnSpanFull(),
 
-        // Active key (if exists)
-        TextEntry::make('active_key')
-            ->icon(Heroicon::LockOpen)
-            ->label('NanoDeploy Public SSH Key')
-            ->state(fn ($record) =>
-                optional(
-                    $record->activeSshKey()->first()
-                )->public_key
-            )->html()
-            ->copyable()
-            ->visible(fn ($record) =>
-                $record->activeSshKey()->exists()
-            )
-            ->columnSpanFull(),
+                    // Active key (if exists)
+                    TextEntry::make('active_key')
+                        ->fontFamily('mono')
+                        ->label('Active NanoDeploy SSH Key')
+                        ->icon('heroicon-o-key')
+                        ->hint('Masked for security')
+                        ->hintIcon('heroicon-o-shield-check')
+                        ->state(
+                            fn($record) =>
+                            optional(
+                                $record->activeSshKey()->first()
+                            )->public_key
+                        )->html()
+                        ->copyable()
+                        ->visible(
+                            fn($record) =>
+                            $record->activeSshKey()->exists()
+                        )  ->extraAttributes([
+                            'class' => 'border border-gray-300 rounded-md p-2',
+                        ])
+                        ->columnSpanFull(),
 
-        // Generate / Rotate
-        Action::make('generate_ssh_key')
-            ->label(fn ($record) =>
-                $record->activeSshKey()->exists()
-                    ? 'Rotate NanoDeploy SSH Key'
-                    : 'Generate NanoDeploy SSH Key'
-            )
-            ->icon('heroicon-o-key')
-            ->color('primary')
-            ->url(fn () =>
-                \App\Filament\Resources\SSHKeys\SSHKeyResource::getUrl('generate', [
-                    'server' => request()->route('record'),
-                ])
-            ),
-    ]),
+                    // Generate / Rotate
+                    Action::make('generate_ssh_key')
+                        ->label(
+                            fn($record) =>
+                            $record->activeSshKey()->exists()
+                                ? 'Rotate NanoDeploy SSH Key'
+                                : 'Generate NanoDeploy SSH Key'
+                        )
+                        ->icon( fn($record) =>
+                            $record->activeSshKey()->exists()
+                                ? 'heroicon-o-arrow-path'
+                                : 'heroicon-o-key')
+                        ->color('success')
+                        ->url(
+                            fn() =>
+                            \App\Filament\Resources\SSHKeys\SSHKeyResource::getUrl('generate', [
+                                'server' => request()->route('record'),
+                            ])
+                        ),
+                ]),
 
 
             /* ─────────────────────────────
@@ -122,12 +136,15 @@ class ViewServer extends ViewRecord
                 ->schema([
                     Action::make('restart_nginx')
                         ->label('Restart Nginx')
+                         ->color('gray')
                         ->disabled(false),
                     Action::make('reload_nginx')
                         ->label('Reload Nginx')
+                         ->color('gray')
                         ->disabled(false),
                     Action::make('restart_mysql')
                         ->label('Restart MySQL')
+                        ->color('gray')
                         ->disabled(false),
                 ])->collapsed(false),
             Section::make('Installed Software')
@@ -136,13 +153,16 @@ class ViewServer extends ViewRecord
                     Text::make('PHP Version'),
                     Action::make('install_php')
                         ->label('Install PHP')
+                        ->color('info')
                         ->disabled(false),
                     Text::make('MySQL Version'),
                     Action::make('install_mysql')
+                        ->color('info')
                         ->label('Install MySQL')
                         ->disabled(false),
                     Text::make('Redis Version'),
                     Action::make('install_redis')
+                        ->color('info')
                         ->label('Install Redis')
                         ->disabled(false),
                 ])->collapsed(false),

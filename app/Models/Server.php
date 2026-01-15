@@ -45,6 +45,26 @@ class Server extends Model
             ->withTimestamps();
     }
 
+    public function maskedActiveSshKey(): ?string
+    {
+        $key = optional($this->activeSshKey()->first())->public_key;
+
+        if (! $key) {
+            return null;
+        }
+
+        [$type, $body, $comment] = array_pad(explode(' ', $key, 3), 3, '');
+
+        return sprintf(
+            '%s %s…%s %s',
+            $type,
+            substr($body, 0, 10),
+            substr($body, -6),
+            $comment
+        );
+    }
+
+
     public function activeSshKey()
     {
         return $this->sshKeys()->wherePivot('active', true);
