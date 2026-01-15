@@ -23,10 +23,10 @@ class ListSSHKeys extends ListRecords
         return [
             CreateAction::make()->label('Add Existing SSH Key'),
             Action::make('generate')
-            ->label('Generate NanoDeploy Key')
-            ->icon('heroicon-o-cpu-chip')
-            ->url(static::$resource::getUrl('generate'))
-            ->color('warning'),
+                ->label('Generate NanoDeploy Key')
+                ->icon('heroicon-o-cpu-chip')
+                ->url(static::$resource::getUrl('generate'))
+                ->color('warning'),
         ];
     }
 }

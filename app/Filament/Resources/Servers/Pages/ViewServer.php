@@ -10,6 +10,14 @@ use Filament\Schemas\Components\Text;
 use Filament\Actions\Action;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Support\Icons\Heroicon;
+use App\Jobs\ServerConnectionJob;
+use Filament\Notifications\Notification;
+use Illuminate\Support\Str;
+use Filament\Support\Enums\FontWeight;
+use Filament\Support\Enums\IconPosition;
+use Filament\Support\Enums\TextSize;
+use Illuminate\Support\Facades\Log;
+
 
 class ViewServer extends ViewRecord
 {
@@ -24,7 +32,6 @@ class ViewServer extends ViewRecord
                     TextEntry::make('name')
                         ->label('Server Name')
                         ->columnSpanFull()
-                        // ->size(TextEntry\TextEntrySize::Large)
                         ->weight('bold'),
 
                     TextEntry::make('host')
@@ -56,9 +63,6 @@ class ViewServer extends ViewRecord
                 ])
                 ->collapsed(false),
 
-            /* ─────────────────────────────
-             | SSH Access (Existing Server)
-             |──────────────────────────── */
             Section::make('SSH Access')
                 ->description('Grant NanoDeploy SSH access to this server.')
                 ->schema([
@@ -89,9 +93,7 @@ class ViewServer extends ViewRecord
                         ->visible(
                             fn($record) =>
                             $record->activeSshKey()->exists()
-                        )  ->extraAttributes([
-                            'class' => 'border border-gray-300 rounded-md p-2',
-                        ])
+                        )
                         ->columnSpanFull(),
 
                     // Generate / Rotate
@@ -102,10 +104,10 @@ class ViewServer extends ViewRecord
                                 ? 'Rotate NanoDeploy SSH Key'
                                 : 'Generate NanoDeploy SSH Key'
                         )
-                        ->icon( fn($record) =>
-                            $record->activeSshKey()->exists()
-                                ? 'heroicon-o-arrow-path'
-                                : 'heroicon-o-key')
+                        ->icon(fn($record) =>
+                        $record->activeSshKey()->exists()
+                            ? 'heroicon-o-arrow-path'
+                            : 'heroicon-o-key')
                         ->color('success')
                         ->url(
                             fn() =>
@@ -116,31 +118,75 @@ class ViewServer extends ViewRecord
                 ]),
 
 
-            /* ─────────────────────────────
-             | Connection Status
-             |──────────────────────────── */
             Section::make('Connection Status')
+                ->description('Current SSH connectivity state for this server')
                 ->columns(2)
+                ->icon('heroicon-o-server')
+                ->poll('5s')
                 ->schema([
-                    Text::make('connection_status'),
-                    Text::make('last_connection_checked_at'),
+                    TextEntry::make('connection_status')
+                        ->label('Status')
+                        ->icon(fn(?string $state) => match ($state) {
+                            'Connected' => 'heroicon-o-check-circle',
+                            'Failed'    => 'heroicon-o-x-circle',
+                            'Pending'   => 'heroicon-o-arrow-path',
+                            default     => 'heroicon-o-question-mark-circle',
+                        })
+                        ->color(fn(?string $state) => match ($state) {
+                            'Connected' => 'success',   // ✅ green
+                            'Failed'    => 'danger',    // ✅ red
+                            'Pending'   => 'warning',   // ✅ amber
+                            default     => 'warning',
+                        })
+                        ->formatStateUsing(
+                            fn(?string $state) =>
+                            ucfirst($state ?? 'Unknown')
+                        )
+                        ->iconPosition(IconPosition::Before)
+                        ->weight(FontWeight::SemiBold)
+                        ->size(TextSize::Large),
+                    TextEntry::make('last_connection_checked_at')
+                        ->label('Last Checked')
+                        ->dateTime('M d, Y H:i')
+                        ->placeholder('Never'),
 
                     Action::make('test_connection')
-                        ->label('Test Connection')
+                        ->label('Test SSH Connection')
                         ->icon('heroicon-o-signal')
+                        ->color('success')
                         ->requiresConfirmation()
-                        ->action(fn() => $this->record->testConnection()),
+                        ->modalHeading('Test SSH Connection')
+                        ->modalDescription(
+                            'This action will attempt to establish an SSH connection to the server using the configured credentials and SSH keys.The test runs in the background and may take a few seconds. No changes will be made to the server.'
+                        )
+                        ->modalSubmitActionLabel('Run Connection Test')
+                        ->modalIcon('heroicon-o-shield-check')
+                        ->action(function () {
+                            if (! $this->record) {
+                                return;
+                            }
+                            ServerConnectionJob::dispatch($this->record);
+                            Notification::make()
+                                ->title('SSH Connection Test Started')
+                                ->body(
+                                    'We are currently testing the SSH connection to this server.
+                    You will be notified once the test completes.'
+                                )
+                                ->success()
+                                ->send();
+                        }),
+
                 ]),
             Section::make('Applications Controls')
                 ->columns(3)
                 ->schema([
                     Action::make('restart_nginx')
                         ->label('Restart Nginx')
-                         ->color('gray')
+                        ->color('gray')
                         ->disabled(false),
                     Action::make('reload_nginx')
                         ->label('Reload Nginx')
-                         ->color('gray')
+                        ->color('gray')
                         ->disabled(false),
                     Action::make('restart_mysql')
                         ->label('Restart MySQL')

@@ -16,8 +16,17 @@ class Server extends Model
         'port',
         'username',
         'ssh_key_path',
-        'status'
+        'status',
+        'connection_status',
+        'last_connection_checked_at'
     ];
+
+    // public enum ConnectionStatus: string
+    // {
+    //     case Unknown = 'Unknown';
+    //     case Connected = 'Connected';
+    //     case Disconnected = 'Disconnected';
+    // }
 
     public function sites(): HasMany
     {
