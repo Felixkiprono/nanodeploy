@@ -11,16 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('sshkeys', function (Blueprint $table) {
+        Schema::create('ssh_keys', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            // system | user
             $table->string('type');
             $table->text('public_key');
-            $table->text('private_key');
-            $table->string('fingerprint')->unique();
-            $table->unsignedBigInteger('owner_user_id');
-            $table->timestamp('revoked_at')->nullable();
+            // only for NanoDeploy-generated keys
+            $table->text('private_key')->nullable();
+            $table->string('fingerprint')->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
@@ -29,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('sshkeys');
+        Schema::dropIfExists('ssh_keys');
     }
 };

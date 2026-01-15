@@ -28,4 +28,25 @@ class Server extends Model
     {
         return $this->belongsTo(Workspace::class);
     }
+
+    public function getPublicIpAttribute(): ?string
+    {
+        return $this->host;
+    }
+    public function sshKeys()
+    {
+        return $this->belongsToMany(
+            SSHKey::class,
+            'server_ssh_keys',
+            'server_id',
+            'ssh_key_id'
+        )
+            ->withPivot(['active'])
+            ->withTimestamps();
+    }
+
+    public function activeSshKey()
+    {
+        return $this->sshKeys()->wherePivot('active', true);
+    }
 }

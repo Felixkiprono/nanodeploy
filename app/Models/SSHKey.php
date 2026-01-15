@@ -3,18 +3,28 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
-class SSHKey extends Model
+class SSHkey extends Model
 {
     //
-      protected $fillable = [
+     use SoftDeletes;
+
+    protected $table = 'ssh_keys';
+
+    protected $fillable = [
         'name',
         'type',
         'public_key',
         'private_key',
         'fingerprint',
-        'owner_user_id',
-        'created_at',
-        'revoked_at',
     ];
+
+    public function servers()
+    {
+        return $this->belongsToMany(Server::class, 'server_ssh_keys')
+            ->withPivot(['active'])
+            ->withTimestamps();
+    }
+
 }

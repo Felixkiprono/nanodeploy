@@ -15,8 +15,9 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('server_id');
             $table->unsignedBigInteger('ssh_key_id');
-            $table->boolean('sudo_enabled')->default(false);
+            $table->boolean('active')->default(false)->comment('Indicates whether the SSH key is active on the server');
             $table->timestamps();
+             $table->unique(['server_id', 'ssh_key_id']);
         });
     }
 
